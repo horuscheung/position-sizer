@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Position Sizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #191919;
+    --paper: #fdfbf5;
+    --gold: #d8b23a;
+    --muted-dark: #8f8f8a;   /* muted text on ink */
+    --muted-light: #8f8a7c;  /* muted text on paper */
+    --soft: #b5b5ae;
+    --line: #ddd8c9;
+    --row-line: #eee8d8;
+    --red: #b0432f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: #e9e6dd;
+    font-family: 'Archivo', system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+  .app {
+    width: 100%;
+    max-width: 440px;
+    min-height: 100vh;
+    background: var(--paper);
+    box-shadow: 0 0 40px rgba(0,0,0,.14);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Hero (ink header) ---------- */
+  .hero { background: var(--ink); color: var(--paper); padding: 26px 24px 22px; }
+  .hero-top { display: flex; justify-content: space-between; align-items: center; }
+  .brand { font-size: 11px; font-weight: 600; letter-spacing: .18em; color: var(--muted-dark); }
+  .chip {
+    background: none; border: 1.5px solid var(--gold); color: var(--gold);
+    font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 800;
+    letter-spacing: .14em; padding: 5px 11px; cursor: pointer;
+  }
+  .chip:hover { background: rgba(216,178,58,.12); }
+  .lots-row { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; }
+  .lots {
+    font-size: 84px; font-weight: 800; line-height: .95; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .lots-unit { font-size: 15px; font-weight: 600; color: var(--muted-dark); }
+  .status-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; min-height: 29px; flex-wrap: wrap; }
+  .badge {
+    background: var(--gold); color: var(--ink); font-size: 12px; font-weight: 800;
+    letter-spacing: .14em; padding: 6px 12px; display: none;
+  }
+  .risk-line { font-size: 12.5px; color: var(--soft); }
+  .risk-line.warn { color: var(--gold); }
+  .gold-bar { height: 4px; background: var(--gold); }
+
+  /* ---------- Paper body ---------- */
+  .body { padding: 20px 24px 40px; color: var(--ink); flex: 1; }
+  .lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: .18em;
+    color: var(--muted-light); margin-bottom: 6px;
+  }
+  .lbl b { color: var(--ink); font-weight: 700; }
+
+  .presets { display: flex; gap: 8px; margin-bottom: 16px; }
+  .presets button {
+    flex: 1; border: 2px solid var(--ink); padding: 9px 0; cursor: pointer;
+    font-family: 'Archivo', sans-serif; font-size: 13px; font-weight: 700;
+    letter-spacing: .06em; background: #fff; color: var(--ink);
+  }
+  .presets button:hover { background: #f5f0e2; }
+  .presets button.active { background: var(--ink); color: var(--gold); font-weight: 800; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid input, .grid select.ccy {
+    width: 100%; background: #fff; border: 2px solid var(--ink); color: var(--ink);
+    font-family: 'Archivo', sans-serif; font-size: 18px; font-weight: 600;
+    padding: 10px 12px; outline: none; font-variant-numeric: tabular-nums;
+    border-radius: 0; -webkit-appearance: none; appearance: none;
+  }
+  .grid input:focus { border-color: var(--gold); }
+  #stop { color: var(--red); }
+  .ccy-sel {
+    background: none; border: none; outline: none; cursor: pointer;
+    font-family: 'Archivo', sans-serif; font-size: 10px; font-weight: 700;
+    letter-spacing: .18em; color: var(--ink); padding: 0;
+    -webkit-appearance: none; appearance: none;
+  }
+
+  .rows { margin-top: 16px; font-variant-numeric: tabular-nums; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--line); padding: 12px 2px; font-size: 13px;
+  }
+  .row .k { color: var(--muted-light); font-weight: 500; letter-spacing: .04em; }
+  .row .v { font-weight: 700; }
+  #fxInput {
+    width: 120px; background: none; border: none; border-bottom: 1.5px solid var(--ink);
+    outline: none; text-align: right; font-family: 'Archivo', sans-serif;
+    font-size: 14px; font-weight: 700; color: var(--ink);
+    font-variant-numeric: tabular-nums; padding: 0 0 2px;
+  }
+  .fx-hint { font-size: 10.5px; color: var(--muted-light); padding: 6px 2px 0; letter-spacing: .04em; }
+
+  .targets { display: flex; gap: 10px; margin-top: 18px; }
+  .tp { flex: 1; border: 2px solid var(--ink); padding: 12px 8px; text-align: center; }
+  .tp .t { font-size: 10px; font-weight: 800; letter-spacing: .2em; color: var(--muted-light); }
+  .tp .p { font-size: 17px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tp.sys { background: var(--ink); border-color: var(--ink); color: var(--gold); padding: 14px 8px; }
+  .tp.sys .t { color: var(--gold); }
+
+  .foot {
+    text-align: center; font-size: 10px; color: var(--muted-light);
+    letter-spacing: .08em; margin-top: 26px;
+  }
+
+  /* ---------- Market sheet (2b) ---------- */
+  .sheet {
+    position: fixed; inset: 0; display: none; justify-content: center;
+    background: rgba(0,0,0,.45); z-index: 10;
+  }
+  .sheet.open { display: flex; }
+  .sheet-panel {
+    width: 100%; max-width: 440px; background: var(--paper);
+    overflow-y: auto; display: flex; flex-direction: column;
+  }
+  .sheet-hero { background: var(--ink); color: var(--paper); padding: 24px 24px 20px; }
+  .sheet-top {
+    display: flex; justify-content: space-between; font-size: 11px;
+    font-weight: 600; letter-spacing: .18em; color: var(--muted-dark);
+  }
+  .sheet-close { color: var(--gold); cursor: pointer; background: none; border: none; font: inherit; letter-spacing: inherit; }
+  .sheet-sym { font-size: 34px; font-weight: 800; letter-spacing: -.02em; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .sheet-spec { font-size: 12px; color: var(--muted-dark); margin-top: 2px; }
+  .sheet-search { padding: 16px 24px 0; }
+  .sheet-search input {
+    width: 100%; background: #fff; border: 2px solid var(--ink); color: var(--ink);
+    font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 700;
+    letter-spacing: .08em; padding: 10px 12px; outline: none; text-transform: uppercase;
+    border-radius: 0; -webkit-appearance: none; appearance: none;
+  }
+  .sheet-search input:focus { border-color: var(--gold); }
+  .sheet-search input::placeholder { color: var(--muted-light); font-weight: 600; }
+  .sheet-list { padding: 4px 0 40px; }
+  .group-hd {
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
+    font-family: 'Archivo', sans-serif; font-size: 10px; font-weight: 800;
+    letter-spacing: .22em; color: var(--muted-light); padding: 20px 24px 8px;
+    background: none; border: none; cursor: pointer; text-align: left;
+  }
+  .group-hd:hover { color: var(--ink); }
+  .group-hd .caret { font-size: 10px; letter-spacing: .1em; }
+  .mkt {
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
+    background: none; border: none; border-bottom: 1px solid var(--row-line);
+    padding: 12px 24px; cursor: pointer; font-family: 'Archivo', sans-serif;
+    color: var(--ink); text-align: left;
+  }
+  .mkt:hover { background: #f5f0e2; }
+  .mkt .key { font-size: 16px; font-weight: 700; letter-spacing: .04em; }
+  .mkt .sub { font-size: 11.5px; color: var(--muted-light); font-weight: 500; }
+  .mkt.active { background: var(--ink); color: var(--gold); border-bottom-color: var(--ink); }
+  .mkt.active .key { font-weight: 800; }
+  .mkt.active .sub { color: var(--gold); font-weight: 700; }
+  .custom-form { padding: 12px 24px 4px; display: none; }
+  .custom-form.show { display: block; }
+  .custom-form .grid { gap: 12px; }
+  .custom-form input, .custom-form select {
+    width: 100%; background: #fff; border: 2px solid var(--ink); color: var(--ink);
+    font-family: 'Archivo', sans-serif; font-size: 16px; font-weight: 600;
+    padding: 8px 10px; outline: none; font-variant-numeric: tabular-nums;
+    border-radius: 0; -webkit-appearance: none; appearance: none;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hero">
+    <div class="hero-top">
+      <span class="brand">POSITION SIZER</span>
+      <button class="chip" id="chip">EURUSD ▾</button>
+    </div>
+    <div class="lots-row">
+      <span class="lots" id="lotsOut">—</span>
+      <span class="lots-unit">LOTS</span>
+    </div>
+    <div class="status-row">
+      <div class="badge" id="badge">▲ LONG</div>
+      <div class="risk-line" id="riskLine">enter entry &amp; stop to size the trade</div>
+    </div>
+  </div>
+  <div class="gold-bar"></div>
+
+  <div class="body">
+    <div class="lbl">QUICK RISK</div>
+    <div class="presets" id="presets">
+      <button data-pct="0.5">0.5%</button>
+      <button data-pct="1" class="active">1%</button>
+      <button data-pct="2">2%</button>
+      <button data-pct="5">5%</button>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="lbl">BALANCE
+          <select class="ccy-sel" id="acctCcy">
+            <option value="USD">USD ▾</option>
+            <option value="HKD">HKD ▾</option>
+          </select>
+        </div>
+        <input type="number" id="balance" value="10000" step="any" min="0" inputmode="decimal">
+      </div>
+      <div>
+        <div class="lbl">RISK % <b id="riskEq"></b></div>
+        <input type="number" id="riskValue" value="1" step="any" min="0" inputmode="decimal">
+      </div>
+      <div>
+        <div class="lbl">ENTRY</div>
+        <input type="number" id="entry" step="any" inputmode="decimal">
+      </div>
+      <div>
+        <div class="lbl">STOP LOSS</div>
+        <input type="number" id="stop" step="any" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="rows">
+      <div class="row"><span class="k">STOP DISTANCE</span><span class="v" id="slDist">—</span></div>
+      <div class="row"><span class="k">POINT VALUE / LOT</span><span class="v" id="pipVal">—</span></div>
+      <div class="row"><span class="k">RISK AMOUNT</span><span class="v" id="riskAmt">—</span></div>
+      <div class="row" id="actualRow"><span class="k">ACTUAL RISK (FLOORED)</span><span class="v" id="actualRisk">—</span></div>
+      <div class="row" id="fxRow" style="display:none">
+        <span class="k" id="fxLabel">FX RATE</span>
+        <input id="fxInput" type="number" step="any" min="0" inputmode="decimal">
+      </div>
+    </div>
+    <div class="fx-hint" id="fxHint" style="display:none"></div>
+
+    <div class="targets">
+      <div class="tp sys"><div class="t">3R TARGET</div><div class="p" id="tp3">—</div></div>
+      <div class="tp"><div class="t">3R REWARD</div><div class="p" id="tpReward">—</div></div>
+    </div>
+
+    <div class="foot">RISK / LOT = |ENTRY − STOP| × CONTRACT × FX · FLOORED TO 0.01</div>
+  </div>
+</div>
+
+<!-- Market select sheet (design option 2b) -->
+<div class="sheet" id="sheet">
+  <div class="sheet-panel">
+    <div class="sheet-hero">
+      <div class="sheet-top">
+        <span>SELECT MARKET</span>
+        <button class="sheet-close" id="sheetClose">✕ CLOSE</button>
+      </div>
+      <div class="sheet-sym" id="sheetSym">EURUSD</div>
+      <div class="sheet-spec" id="sheetSpec"></div>
+    </div>
+    <div class="gold-bar"></div>
+    <div class="sheet-search">
+      <input id="mktSearch" type="text" placeholder="SEARCH MARKET" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="sheet-list" id="sheetList"></div>
+  </div>
+</div>
+
+<script>
+// Per instrument: contract size (per 1 standard lot), quote currency,
+// pip/point size (display only), price decimal places, list group
+const INSTRUMENTS = {
+  // USD majors
+  EURUSD: { contract: 100000, quote: 'USD', pip: 0.0001, dp: 5, group: 'FX MAJORS' },
+  GBPUSD: { contract: 100000, quote: 'USD', pip: 0.0001, dp: 5, group: 'FX MAJORS' },
+  AUDUSD: { contract: 100000, quote: 'USD', pip: 0.0001, dp: 5, group: 'FX MAJORS' },
+  NZDUSD: { contract: 100000, quote: 'USD', pip: 0.0001, dp: 5, group: 'FX MAJORS' },
+  USDJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'FX MAJORS' },
+  USDCHF: { contract: 100000, quote: 'CHF', pip: 0.0001, dp: 5, group: 'FX MAJORS' },
+  USDCAD: { contract: 100000, quote: 'CAD', pip: 0.0001, dp: 5, group: 'FX MAJORS' },
+  // Crosses — all 21 non-USD pairs of the 8 majors
+  EURGBP: { contract: 100000, quote: 'GBP', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  EURAUD: { contract: 100000, quote: 'AUD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  EURNZD: { contract: 100000, quote: 'NZD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  EURCAD: { contract: 100000, quote: 'CAD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  EURCHF: { contract: 100000, quote: 'CHF', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  EURJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'CROSSES' },
+  GBPAUD: { contract: 100000, quote: 'AUD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  GBPNZD: { contract: 100000, quote: 'NZD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  GBPCAD: { contract: 100000, quote: 'CAD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  GBPCHF: { contract: 100000, quote: 'CHF', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  GBPJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'CROSSES' },
+  AUDNZD: { contract: 100000, quote: 'NZD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  AUDCAD: { contract: 100000, quote: 'CAD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  AUDCHF: { contract: 100000, quote: 'CHF', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  AUDJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'CROSSES' },
+  NZDCAD: { contract: 100000, quote: 'CAD', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  NZDCHF: { contract: 100000, quote: 'CHF', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  NZDJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'CROSSES' },
+  CADCHF: { contract: 100000, quote: 'CHF', pip: 0.0001, dp: 5, group: 'CROSSES' },
+  CADJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'CROSSES' },
+  CHFJPY: { contract: 100000, quote: 'JPY', pip: 0.01,   dp: 3, group: 'CROSSES' },
+  // Commodities / indices / crypto (common CFD specs; use CUSTOM if your broker differs)
+  XAUUSD: { contract: 100,    quote: 'USD', pip: 0.1,  dp: 2, unit: 'point', group: 'METALS', sub: '100 oz' },
+  XAGUSD: { contract: 5000,   quote: 'USD', pip: 0.01, dp: 3, unit: 'point', group: 'METALS', sub: '5,000 oz' },
+  HK50:   { contract: 1,      quote: 'HKD', pip: 1,    dp: 0, unit: 'point', group: 'INDICES', sub: '1 / pt' },
+  NAS100: { contract: 1,      quote: 'USD', pip: 1,    dp: 1, unit: 'point', group: 'INDICES', sub: '1 / pt' },
+  US500:  { contract: 1,      quote: 'USD', pip: 1,    dp: 1, unit: 'point', group: 'INDICES', sub: '1 / pt' },
+  US30:   { contract: 1,      quote: 'USD', pip: 1,    dp: 1, unit: 'point', group: 'INDICES', sub: '1 / pt' },
+  BTCUSD: { contract: 1,      quote: 'USD', pip: 1,    dp: 1, unit: 'point', group: 'CRYPTO', sub: '1 unit' },
+  ETHUSD: { contract: 1,      quote: 'USD', pip: 1,    dp: 2, unit: 'point', group: 'CRYPTO', sub: '1 unit' },
+  CUSTOM: { contract: 100000, quote: 'USD', pip: 0.0001, dp: 5, group: 'CUSTOM', sub: 'editable spec' },
+};
+
+const $ = id => document.getElementById(id);
+let currentSym = 'EURUSD';
+
+function getSpec() {
+  const base = INSTRUMENTS[currentSym];
+  if (currentSym === 'CUSTOM') {
+    return { ...base, contract: +$('customContract').value || 0, quote: $('customQuote').value };
+  }
+  return base;
+}
+
+function specLine(key) {
+  const s = key === 'CUSTOM' ? getSpec() : INSTRUMENTS[key];
+  const sub = INSTRUMENTS[key].sub || `${s.contract.toLocaleString('en-US')} / lot`;
+  return `${sub} · quote ${s.quote}`;
+}
+
+// ---------- Market sheet (2b) ----------
+const collapsedGroups = {};
+let sheetQuery = '';
+
+function buildSheet() {
+  const list = $('sheetList');
+  list.innerHTML = '';
+  const groups = {};
+  for (const [k, v] of Object.entries(INSTRUMENTS)) {
+    (groups[v.group] = groups[v.group] || []).push(k);
+  }
+  const activeGroup = INSTRUMENTS[currentSym].group;
+  const searching = sheetQuery.length > 0;
+  for (const [g, keys] of Object.entries(groups)) {
+    if (!(g in collapsedGroups)) collapsedGroups[g] = true; // all groups start collapsed
+    const shown = searching ? keys.filter(k => k.includes(sheetQuery) || INSTRUMENTS[k].quote.includes(sheetQuery)) : keys;
+    if (searching && !shown.length) continue;
+    const isCollapsed = !searching && collapsedGroups[g];
+    const hd = document.createElement('button');
+    hd.className = 'group-hd';
+    hd.innerHTML = `<span>${g}${g === activeGroup ? ' ●' : ''}</span><span class="caret">${shown.length}${searching ? '' : ' ' + (isCollapsed ? '▸' : '▾')}</span>`;
+    if (!searching) hd.addEventListener('click', () => { collapsedGroups[g] = !collapsedGroups[g]; buildSheet(); });
+    list.appendChild(hd);
+    if (isCollapsed) continue;
+    for (const k of shown) {
+      const b = document.createElement('button');
+      b.className = 'mkt' + (k === currentSym ? ' active' : '');
+      const sub = INSTRUMENTS[k].sub || `${INSTRUMENTS[k].contract.toLocaleString('en-US')} · ${INSTRUMENTS[k].quote}`;
+      b.innerHTML = `<span class="key">${k}</span><span class="sub">${k === currentSym ? '● ' : ''}${sub}</span>`;
+      b.addEventListener('click', () => selectMarket(k));
+      list.appendChild(b);
+    }
+    if (g === 'CUSTOM' && !isCollapsed) {
+      const form = document.createElement('div');
+      form.className = 'custom-form' + (currentSym === 'CUSTOM' ? ' show' : '');
+      form.id = 'customForm';
+      form.innerHTML = `
+        <div class="grid">
+          <div><div class="lbl">CONTRACT SIZE / LOT</div><input type="number" id="customContract" value="${customContractVal}" step="any" min="0" inputmode="decimal"></div>
+          <div><div class="lbl">QUOTE CURRENCY</div><select id="customQuote">${['USD','HKD','JPY','GBP','EUR','CHF','CAD','AUD','NZD'].map(c => `<option${c === customQuoteVal ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
+        </div>`;
+      list.appendChild(form);
+      form.querySelector('#customContract').addEventListener('input', () => { customContractVal = form.querySelector('#customContract').value; calc(); updateSheetHero(); });
+      form.querySelector('#customQuote').addEventListener('change', () => { customQuoteVal = form.querySelector('#customQuote').value; $('fxInput').value = ''; convManual = false; calc(); updateSheetHero(); });
+    }
+  }
+  if (searching && !list.children.length) {
+    const empty = document.createElement('div');
+    empty.className = 'group-hd';
+    empty.style.cursor = 'default';
+    empty.textContent = `NO MATCH FOR “${sheetQuery}”`;
+    list.appendChild(empty);
+  }
+}
+let customContractVal = '100000';
+let customQuoteVal = 'USD';
+
+function updateSheetHero() {
+  $('sheetSym').textContent = currentSym;
+  $('sheetSpec').textContent = specLine(currentSym);
+}
+
+function selectMarket(k) {
+  currentSym = k;
+  $('chip').textContent = `${k} ▾`;
+  $('fxInput').value = '';
+  convManual = false;
+  buildSheet();
+  updateSheetHero();
+  if (k !== 'CUSTOM') closeSheet();
+  calc();
+}
+
+function openSheet() {
+  sheetQuery = '';
+  $('mktSearch').value = '';
+  buildSheet();
+  updateSheetHero();
+  $('sheet').classList.add('open');
+  $('mktSearch').focus();
+}
+function closeSheet() { $('sheet').classList.remove('open'); }
+$('chip').addEventListener('click', openSheet);
+$('sheetClose').addEventListener('click', closeSheet);
+$('mktSearch').addEventListener('input', () => {
+  sheetQuery = $('mktSearch').value.trim().toUpperCase();
+  buildSheet();
+});
+$('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
+
+// ---------- Risk presets ----------
+$('presets').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON') return;
+  $('riskValue').value = e.target.dataset.pct;
+  syncPresets();
+  calc();
+});
+function syncPresets() {
+  const v = $('riskValue').value;
+  document.querySelectorAll('#presets button').forEach(b =>
+    b.classList.toggle('active', b.dataset.pct === v));
+}
+
+// ---------- FX rate: auto-fetch from frankfurter.app (ECB reference, no API key) ----------
+// Falls back to manual input when offline or the fetch fails.
+const rateCache = {};
+const ratePending = {};
+let convManual = false;
+let fetchToken = 0;
+
+function manualRateHint(from, to) {
+  return `AUTO RATE UNAVAILABLE — ENTER CURRENT ${from}${to} PRICE MANUALLY`;
+}
+
+function applyAutoRate(rate) {
+  if (convManual && +$('fxInput').value > 0) return;
+  const v = (+rate).toPrecision(6);
+  setFxHint('AUTO · ECB REFERENCE RATE — TYPE TO OVERRIDE');
+  if ($('fxInput').value === v) return;
+  $('fxInput').value = v;
+  calc();
+}
+
+function setFxHint(t) { const h = $('fxHint'); h.textContent = t; h.style.display = t ? '' : 'none'; }
+
+function autoFetchRate(from, to) {
+  const key = `${from}_${to}`;
+  if (rateCache[key]) { applyAutoRate(rateCache[key]); return; }
+  if (ratePending[key]) return;
+  ratePending[key] = true;
+  const token = ++fetchToken;
+  setFxHint('FETCHING RATE…');
+  fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
+    .then(r => r.json())
+    .then(j => {
+      delete ratePending[key];
+      const rate = j && j.rates && j.rates[to];
+      if (!(rate > 0)) throw new Error('no rate');
+      rateCache[key] = rate;
+      if (token === fetchToken) applyAutoRate(rate);
+    })
+    .catch(() => {
+      delete ratePending[key];
+      if (token === fetchToken) setFxHint(manualRateHint(from, to));
+    });
+}
+
+function updateConvUI() {
+  const spec = getSpec();
+  const acct = $('acctCcy').value;
+
+  if (spec.quote === acct) {
+    $('fxRow').style.display = 'none';
+    setFxHint('');
+    return;
+  }
+  $('fxRow').style.display = '';
+  $('fxLabel').textContent = `FX RATE · 1 ${spec.quote} → ${acct}`;
+
+  if (convManual && +$('fxInput').value > 0) { setFxHint('MANUAL RATE — SWITCH MARKET TO RESET'); return; }
+
+  // USD-base pairs: quote→USD rate derives directly from 1/entry (intraday-accurate, no network)
+  const usdBase = /^USD/.test(currentSym) && acct === 'USD';
+  if (usdBase && +$('entry').value > 0) {
+    $('fxInput').value = (1 / +$('entry').value).toPrecision(6);
+    setFxHint('AUTO · 1 ÷ ENTRY (USD-BASE PAIR)');
+  } else {
+    autoFetchRate(spec.quote, acct);
+  }
+}
+
+// ---------- Calculation ----------
+function fmt(n, dp = 2) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+
+function resetOutputs(msg) {
+  $('lotsOut').textContent = '—';
+  $('badge').style.display = 'none';
+  const rl = $('riskLine');
+  rl.textContent = msg || 'enter entry & stop to size the trade';
+  rl.classList.toggle('warn', !!msg);
+  ['slDist','pipVal','riskAmt','actualRisk','tp3','tpReward'].forEach(id => $(id).textContent = '—');
+}
+
+function calc() {
+  updateConvUI();
+  const spec = getSpec();
+  const acct = $('acctCcy').value;
+  const balance = +$('balance').value;
+  const entry = +$('entry').value;
+  const stop = +$('stop').value;
+
+  const riskAmt = balance * (+$('riskValue').value) / 100;
+  $('riskEq').textContent = balance > 0 && riskAmt > 0 ? `= ${fmt(riskAmt)} ${acct}` : '';
+
+  const conv = spec.quote === acct ? 1 : +$('fxInput').value;
+
+  if (!(balance > 0) || !(riskAmt > 0) || !(entry > 0) || !(stop > 0)) { resetOutputs(); return; }
+  if (entry === stop) { resetOutputs('ENTRY = STOP — NO DISTANCE'); return; }
+  if (!(conv > 0)) { resetOutputs('ENTER FX RATE BELOW'); return; }
+  if (!(spec.contract > 0)) { resetOutputs('CONTRACT SIZE MUST BE > 0'); return; }
+
+  const dist = Math.abs(entry - stop);
+  const riskPerLot = dist * spec.contract * conv;       // risk per 1 lot, in account currency
+  const rawLots = riskAmt / riskPerLot;
+  const lots = Math.floor(rawLots * 100 + 1e-7) / 100;  // floor to 0.01 step (FP-tolerant)
+  const long = entry > stop;
+
+  $('lotsOut').textContent = lots >= 0.01 ? fmt(lots, 2) : '<0.01';
+  const badge = $('badge');
+  badge.style.display = 'block';
+  badge.textContent = long ? '▲ LONG' : '▼ SHORT';
+
+  const rl = $('riskLine');
+  const actualRisk = lots * riskPerLot;
+  if (lots < 0.01) {
+    const minLotRisk = 0.01 * riskPerLot;
+    rl.textContent = `below min lot 0.01 — trading 0.01 risks ${fmt(minLotRisk)} ${acct} (${fmt(minLotRisk / balance * 100, 2)}% of balance)`;
+    rl.classList.add('warn');
+  } else {
+    rl.textContent = `risking ${fmt(actualRisk)} ${acct} · ${fmt(actualRisk / balance * 100, 2)}%`;
+    rl.classList.remove('warn');
+  }
+
+  const unit = spec.unit === 'point' ? 'PTS' : 'PIPS';
+  const pipVal = spec.pip * spec.contract * conv;       // per-lot pip/point value, in account currency
+  const sign = long ? 1 : -1;
+
+  $('slDist').textContent = `${fmt(dist / spec.pip, 1)} ${unit}`;
+  $('pipVal').textContent = `${fmt(pipVal, 2)} ${acct}`;
+  $('riskAmt').textContent = `${fmt(riskAmt)} ${acct}`;
+  $('actualRisk').textContent = lots >= 0.01 ? `${fmt(actualRisk)} ${acct} · ${fmt(actualRisk / balance * 100, 2)}%` : '—';
+  $('tp3').textContent = fmt(entry + sign * dist * 3, spec.dp);
+  $('tpReward').textContent = lots >= 0.01
+    ? `+${fmt(actualRisk * 3)} ${acct} · ${fmt(actualRisk * 3 / balance * 100, 1)}%`
+    : '—';
+}
+
+// ---------- Wiring ----------
+['balance','riskValue','entry','stop'].forEach(id => $(id).addEventListener('input', calc));
+$('riskValue').addEventListener('input', syncPresets);
+// Set the manual flag before recalculating, so calc() does not overwrite the typed rate
+$('fxInput').addEventListener('input', () => { convManual = true; calc(); });
+$('acctCcy').addEventListener('change', () => { $('fxInput').value = ''; convManual = false; calc(); });
+
+buildSheet();
+calc();
+</script>
+</body>
+</html>
