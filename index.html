@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="google-site-verification" content="SbW9HJc8Go961nWBuFtuujU8RAIF2i7cGwRZLkUWQfQ" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Position Sizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -439,8 +439,9 @@ function syncPresets() {
     b.classList.toggle('active', b.dataset.pct === v));
 }
 
-// ---------- FX rate: auto-fetch from frankfurter.app (ECB reference, no API key) ----------
-// Falls back to manual input when offline or the fetch fails.
+// ---------- FX rate auto-fetch (no API key required) ----------
+// Primary: api.frankfurter.dev (ECB reference; the legacy .app domain breaks on HTTPS origins).
+// Secondary: open.er-api.com. Falls back to manual input when both fail or offline.
 const rateCache = {};
 const ratePending = {};
 let convManual = false;
@@ -461,6 +462,18 @@ function applyAutoRate(rate) {
 
 function setFxHint(t) { const h = $('fxHint'); h.textContent = t; h.style.display = t ? '' : 'none'; }
 
+async function fetchRateFromApis(from, to) {
+  try {
+    const r = await fetch(`https://api.frankfurter.dev/v1/latest?base=${from}&symbols=${to}`);
+    const j = await r.json();
+    if (j && j.rates && j.rates[to] > 0) return j.rates[to];
+  } catch (e) { /* try secondary */ }
+  const r = await fetch(`https://open.er-api.com/v6/latest/${from}`);
+  const j = await r.json();
+  if (j && j.rates && j.rates[to] > 0) return j.rates[to];
+  throw new Error('no rate');
+}
+
 function autoFetchRate(from, to) {
   const key = `${from}_${to}`;
   if (rateCache[key]) { applyAutoRate(rateCache[key]); return; }
@@ -468,12 +481,9 @@ function autoFetchRate(from, to) {
   ratePending[key] = true;
   const token = ++fetchToken;
   setFxHint('FETCHING RATE…');
-  fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
-    .then(r => r.json())
-    .then(j => {
+  fetchRateFromApis(from, to)
+    .then(rate => {
       delete ratePending[key];
-      const rate = j && j.rates && j.rates[to];
-      if (!(rate > 0)) throw new Error('no rate');
       rateCache[key] = rate;
       if (token === fetchToken) applyAutoRate(rate);
     })
