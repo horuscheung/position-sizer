@@ -106,7 +106,7 @@
   #fxInput {
     width: 120px; background: none; border: none; border-bottom: 1.5px solid var(--ink);
     outline: none; text-align: right; font-family: 'Archivo', sans-serif;
-    font-size: 14px; font-weight: 700; color: var(--ink);
+    font-size: 16px; font-weight: 700; color: var(--ink);
     font-variant-numeric: tabular-nums; padding: 0 0 2px;
   }
   .fx-hint { font-size: 10.5px; color: var(--muted-light); padding: 6px 2px 0; letter-spacing: .04em; }
@@ -144,7 +144,8 @@
   .sheet-search { padding: 16px 24px 0; }
   .sheet-search input {
     width: 100%; background: #fff; border: 2px solid var(--ink); color: var(--ink);
-    font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 700;
+    /* 16px minimum stops iOS Safari from auto-zooming the page on focus */
+    font-family: 'Archivo', sans-serif; font-size: 16px; font-weight: 700;
     letter-spacing: .08em; padding: 10px 12px; outline: none; text-transform: uppercase;
     border-radius: 0; -webkit-appearance: none; appearance: none;
   }
@@ -415,7 +416,6 @@ function openSheet() {
   buildSheet();
   updateSheetHero();
   $('sheet').classList.add('open');
-  $('mktSearch').focus();
 }
 function closeSheet() { $('sheet').classList.remove('open'); }
 $('chip').addEventListener('click', openSheet);
