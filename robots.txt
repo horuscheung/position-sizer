@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://horuscheung.github.io/position-sizer/sitemap.xml
