@@ -70,6 +70,13 @@
     color: var(--muted-light); margin-bottom: 6px;
   }
   .lbl b { color: var(--ink); font-weight: 700; }
+  .lbl-row { display: flex; justify-content: space-between; align-items: baseline; }
+  #liveBtn {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: 'Archivo', sans-serif; font-size: 10px; font-weight: 800;
+    letter-spacing: .14em; color: var(--gold-dk, #a07714);
+  }
+  #liveBtn:disabled { color: var(--muted-light); cursor: default; }
 
   .presets { display: flex; gap: 8px; margin-bottom: 16px; }
   .presets button {
@@ -225,7 +232,7 @@
         <input type="number" id="riskValue" value="1" step="any" min="0" inputmode="decimal">
       </div>
       <div>
-        <div class="lbl">ENTRY</div>
+        <div class="lbl lbl-row">ENTRY <button id="liveBtn" type="button" style="display:none">↻ LIVE</button></div>
         <input type="number" id="entry" step="any" inputmode="decimal">
       </div>
       <div>
@@ -404,10 +411,55 @@ function selectMarket(k) {
   $('chip').textContent = `${k} ▾`;
   $('fxInput').value = '';
   convManual = false;
+  $('liveBtn').style.display = livePriceSource(k) ? '' : 'none';
   buildSheet();
   updateSheetHero();
   if (k !== 'CUSTOM') closeSheet();
   calc();
+}
+
+// ---------- Live price for ENTRY (no API key required) ----------
+// FX pairs: Coinbase exchange-rates (CORS-open, minute-level updates).
+// Crypto: Binance ticker. No free CORS source for metals/indices — button hidden there.
+function livePriceSource(k) {
+  const g = INSTRUMENTS[k] && INSTRUMENTS[k].group;
+  if (g === 'FX MAJORS' || g === 'CROSSES') return 'coinbase';
+  if (k === 'BTCUSD' || k === 'ETHUSD') return 'binance';
+  return null;
+}
+
+async function fetchLivePrice(k) {
+  if (livePriceSource(k) === 'coinbase') {
+    const base = k.slice(0, 3), quote = k.slice(3);
+    const r = await fetch(`https://api.coinbase.com/v2/exchange-rates?currency=${base}`);
+    const j = await r.json();
+    const p = j && j.data && +j.data.rates[quote];
+    if (!(p > 0)) throw new Error('no price');
+    return p;
+  }
+  const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${k.slice(0, 3)}USDT`);
+  const j = await r.json();
+  if (!(+j.price > 0)) throw new Error('no price');
+  return +j.price;
+}
+
+async function pullLivePrice() {
+  const btn = $('liveBtn');
+  const k = currentSym;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const p = await fetchLivePrice(k);
+    if (currentSym !== k) return; // market changed mid-fetch
+    $('entry').value = p.toFixed(INSTRUMENTS[k].dp);
+    btn.textContent = '↻ LIVE';
+    calc();
+  } catch (e) {
+    btn.textContent = 'N/A';
+    setTimeout(() => { btn.textContent = '↻ LIVE'; }, 1500);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function openSheet() {
@@ -587,6 +639,8 @@ function calc() {
 
 // ---------- Wiring ----------
 ['balance','riskValue','entry','stop'].forEach(id => $(id).addEventListener('input', calc));
+$('liveBtn').addEventListener('click', pullLivePrice);
+$('liveBtn').style.display = livePriceSource(currentSym) ? '' : 'none';
 $('riskValue').addEventListener('input', syncPresets);
 // Set the manual flag before recalculating, so calc() does not overwrite the typed rate
 $('fxInput').addEventListener('input', () => { convManual = true; calc(); });
